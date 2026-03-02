@@ -10,7 +10,7 @@ end if
 include 'win32ax.inc'
 
 W = 80
-H = 24
+H = 23
 PADDLE_H = 4
 LEFT_X = 2
 RIGHT_X = 77
