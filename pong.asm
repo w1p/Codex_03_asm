@@ -80,47 +80,33 @@ proc handle_input
 if UNIT_TEST = 1
   ret
 else
- .poll:
-  cinvoke _kbhit
-  test eax,eax
-  jz .done
-
-  cinvoke _getch
-  cmp eax,'w'
-  je .up_left
-  cmp eax,'W'
-  je .up_left
-  cmp eax,'s'
-  je .down_left
-  cmp eax,'S'
-  je .down_left
-  cmp eax,'o'
-  je .up_right
-  cmp eax,'O'
-  je .up_right
-  cmp eax,'l'
-  je .down_right
-  cmp eax,'L'
-  je .down_right
-  cmp eax,'q'
-  je .quit
-  cmp eax,'Q'
-  je .quit
-  jmp .poll
-
-.up_left:
+  invoke GetAsyncKeyState, 'W'
+  test ax,8000h
+  jz .check_left_down
   sub [left_y],1
-  jmp .poll
-.down_left:
+
+.check_left_down:
+  invoke GetAsyncKeyState, 'S'
+  test ax,8000h
+  jz .check_right_up
   add [left_y],1
-  jmp .poll
-.up_right:
+
+.check_right_up:
+  invoke GetAsyncKeyState, 'O'
+  test ax,8000h
+  jz .check_right_down
   sub [right_y],1
-  jmp .poll
-.down_right:
+
+.check_right_down:
+  invoke GetAsyncKeyState, 'L'
+  test ax,8000h
+  jz .check_quit
   add [right_y],1
-  jmp .poll
-.quit:
+
+.check_quit:
+  invoke GetAsyncKeyState, 'Q'
+  test ax,8000h
+  jz .done
   mov dword [quit_flag],1
 .done:
   ret
@@ -338,6 +324,7 @@ start:
 
 section '.idata' import data readable writeable
   library kernel32, 'KERNEL32.DLL', \
+          user32,   'USER32.DLL', \
           msvcrt,   'MSVCRT.DLL'
 
   import kernel32, \
@@ -347,9 +334,10 @@ section '.idata' import data readable writeable
          Sleep,         'Sleep', \
          ExitProcess,   'ExitProcess'
 
+  import user32, \
+         GetAsyncKeyState, 'GetAsyncKeyState'
+
   import msvcrt, \
          printf,        'printf', \
-         fflush,        'fflush', \
-         _kbhit,        '_kbhit', \
-         _getch,        '_getch'
+         fflush,        'fflush'
 end if
