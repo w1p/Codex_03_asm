@@ -210,15 +210,11 @@ proc update_game
   jmp .check_score
 
 .score_left:
-  push dword 1
-  call reset_ball
-  add esp,4
+  stdcall reset_ball, 1
   jmp .check_score
 
 .score_right:
-  push dword 0FFFFFFFFh
-  call reset_ball
-  add esp,4
+  stdcall reset_ball, 0FFFFFFFFh
 
 .check_score:
   ret
