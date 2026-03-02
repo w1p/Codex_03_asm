@@ -66,6 +66,22 @@ Then open a **new terminal** and build normally:
 D:\fasm\fasm.exe pong.asm pong.exe
 ```
 
+### If you still see `pong.asm [344] ... 0, ... illegal instruction`
+
+You are likely building an older copy of `pong.asm` where `CreateWindowEx` was split incorrectly.
+In the current version, it must be a single `invoke` line:
+
+```asm
+invoke CreateWindowEx, 0, class_name, window_title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, WINDOW_W, WINDOW_H, NULL, NULL, ebx, NULL
+```
+
+Quick checks in PowerShell:
+
+```powershell
+git pull
+Select-String -Path .\pong.asm -Pattern 'invoke CreateWindowEx'
+```
+
 ## Requirements (Windows 11)
 
 - [FASM](https://flatassembler.net/) (Flat Assembler)

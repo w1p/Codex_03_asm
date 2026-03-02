@@ -202,7 +202,7 @@ proc update_game
   mov eax,[ball_x]
   cmp eax,0
   jge .check_score_right
-  invoke reset_ball, 1
+  stdcall reset_ball, 1
   jmp .done
 
 .check_score_right:
@@ -212,7 +212,7 @@ proc update_game
   mov edx,[ball_x]
   cmp edx,eax
   jle .done
-  invoke reset_ball, -1
+  stdcall reset_ball, -1
 
 .done:
   ret
