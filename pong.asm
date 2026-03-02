@@ -14,6 +14,8 @@ H = 23
 PADDLE_H = 4
 LEFT_X = 2
 RIGHT_X = 77
+BALL_STEP_MS = 100
+FRAME_MS = 33
 
 STD_OUTPUT_HANDLE = -11
 ENABLE_VIRTUAL_TERMINAL_PROCESSING = 4
@@ -31,6 +33,7 @@ section '.data' data readable writeable
   ball_y    dd 12
   vx        dd 1
   vy        dd 1
+  ball_accum_ms dd 0
   left_score  dd 0
   right_score dd 0
   quit_flag   dd 0
@@ -73,6 +76,7 @@ proc reset_ball, dir
   mov eax,[dir]
   mov [vx],eax
   mov [vy],1
+  mov dword [ball_accum_ms],0
   ret
 endp
 
@@ -120,6 +124,14 @@ proc update_game
 
   call clamp_paddles
 
+  add dword [ball_accum_ms],FRAME_MS
+
+.move_loop_check:
+  mov eax,[ball_accum_ms]
+  cmp eax,BALL_STEP_MS
+  jl .check_score
+  sub dword [ball_accum_ms],BALL_STEP_MS
+
   mov eax,[ball_x]
   add eax,[vx]
   mov [ball_x],eax
@@ -164,15 +176,15 @@ proc update_game
   mov eax,[vx]
   neg eax
   mov [vx],eax
-  jmp .check_score
+  jmp .move_loop_check
 
 .check_right:
   mov eax,[vx]
   cmp eax,0
-  jle .check_score
+  jle .move_loop_check
   mov eax,[ball_x]
   cmp eax,RIGHT_X-1
-  jne .check_score
+  jne .move_loop_check
 
   mov ecx,[ball_y]
   mov edx,[right_y]
@@ -185,7 +197,7 @@ proc update_game
   mov eax,[vx]
   neg eax
   mov [vx],eax
-  jmp .check_score
+  jmp .move_loop_check
 
 .score_left:
   add dword [right_score],1

@@ -22,8 +22,6 @@ macro ASSERT_MEM_EQ mem, expected
   inc dword [tests_passed]
 .done:
 }
-
-
 proc test_clamp_bounds
   mov dword [left_y],-7
   mov dword [right_y],999
@@ -39,6 +37,7 @@ proc test_reset_ball
   mov dword [ball_y],1
   mov dword [vx],77
   mov dword [vy],-4
+  mov dword [ball_accum_ms],55
 
   stdcall reset_ball, 0FFFFFFFFh
 
@@ -46,6 +45,7 @@ proc test_reset_ball
   ASSERT_MEM_EQ ball_y, 12
   ASSERT_MEM_EQ vx, 0FFFFFFFFh
   ASSERT_MEM_EQ vy, 1
+  ASSERT_MEM_EQ ball_accum_ms, 0
   ret
 endp
 
@@ -61,6 +61,7 @@ proc test_top_bounce
 
   ASSERT_MEM_EQ ball_y, 1
   ASSERT_MEM_EQ vy, 1
+  ASSERT_MEM_EQ ball_accum_ms, 0
   ret
 endp
 
@@ -95,6 +96,7 @@ proc test_left_miss_scores
   ASSERT_MEM_EQ ball_y, 12
   ASSERT_MEM_EQ vx, 1
   ASSERT_MEM_EQ vy, 1
+  ASSERT_MEM_EQ ball_accum_ms, 0
   ASSERT_MEM_EQ right_score, 1
   ASSERT_MEM_EQ left_score, 0
   ret
