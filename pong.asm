@@ -80,33 +80,33 @@ proc handle_input
 if UNIT_TEST = 1
   ret
 else
-  ; Immediate held-key movement (no typematic delay).
+  ; Immediate held-key movement + tap detection between frame polls.
   invoke GetAsyncKeyState, 57h ; W
-  test eax,8000h
+  test eax,8001h
   jz handle_input_check_left_down
   sub [left_y],1
 
 handle_input_check_left_down:
   invoke GetAsyncKeyState, 53h ; S
-  test eax,8000h
+  test eax,8001h
   jz handle_input_check_right_up
   add [left_y],1
 
 handle_input_check_right_up:
   invoke GetAsyncKeyState, 4Fh ; O
-  test eax,8000h
+  test eax,8001h
   jz handle_input_check_right_down
   sub [right_y],1
 
 handle_input_check_right_down:
   invoke GetAsyncKeyState, 4Ch ; L
-  test eax,8000h
+  test eax,8001h
   jz handle_input_check_quit
   add [right_y],1
 
 handle_input_check_quit:
   invoke GetAsyncKeyState, 51h ; Q
-  test eax,8000h
+  test eax,8001h
   jz handle_input_done
   mov dword [quit_flag],1
 
