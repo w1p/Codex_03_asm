@@ -1,5 +1,7 @@
+if ~defined UNIT_TEST
 format PE console 4.0
 entry start
+end if
 
 include 'win32ax.inc'
 
@@ -67,6 +69,9 @@ proc reset_ball, dir
 endp
 
 proc handle_input
+if defined UNIT_TEST
+  ret
+else
   cinvoke _kbhit
   test eax,eax
   jz .done
@@ -89,6 +94,7 @@ proc handle_input
   add [left_y],1
 .done:
   ret
+end if
 endp
 
 proc update_game
@@ -204,7 +210,7 @@ proc update_game
   jmp .check_score
 
 .score_right:
-  stdcall reset_ball, -1
+  stdcall reset_ball, 0FFFFFFFFh
 
 .check_score:
   ret
@@ -299,6 +305,7 @@ proc build_frame
   ret
 endp
 
+if ~defined UNIT_TEST
 start:
   invoke GetStdHandle, STD_OUTPUT_HANDLE
   mov [out_handle],eax
@@ -340,3 +347,4 @@ section '.idata' import data readable writeable
          fflush,        'fflush', \
          _kbhit,        '_kbhit', \
          _getch,        '_getch'
+end if
