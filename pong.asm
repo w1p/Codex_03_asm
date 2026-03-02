@@ -80,49 +80,80 @@ proc handle_input
 if UNIT_TEST = 1
   ret
 else
- .poll:
+  ; Immediate held-key movement (no typematic delay).
+  invoke GetAsyncKeyState, 57h ; W
+  test eax,8000h
+  jz handle_input_check_left_down
+  sub [left_y],1
+
+handle_input_check_left_down:
+  invoke GetAsyncKeyState, 53h ; S
+  test eax,8000h
+  jz handle_input_check_right_up
+  add [left_y],1
+
+handle_input_check_right_up:
+  invoke GetAsyncKeyState, 4Fh ; O
+  test eax,8000h
+  jz handle_input_check_right_down
+  sub [right_y],1
+
+handle_input_check_right_down:
+  invoke GetAsyncKeyState, 4Ch ; L
+  test eax,8000h
+  jz handle_input_check_quit
+  add [right_y],1
+
+handle_input_check_quit:
+  invoke GetAsyncKeyState, 51h ; Q
+  test eax,8000h
+  jz handle_input_poll
+  mov dword [quit_flag],1
+
+  ; Compatibility path: process queued keypresses from console too.
+handle_input_poll:
   cinvoke _kbhit
   test eax,eax
-  jz .done
+  jz handle_input_done
 
   cinvoke _getch
   cmp eax,'w'
-  je .up_left
+  je handle_input_up_left
   cmp eax,'W'
-  je .up_left
+  je handle_input_up_left
   cmp eax,'s'
-  je .down_left
+  je handle_input_down_left
   cmp eax,'S'
-  je .down_left
+  je handle_input_down_left
   cmp eax,'o'
-  je .up_right
+  je handle_input_up_right
   cmp eax,'O'
-  je .up_right
+  je handle_input_up_right
   cmp eax,'l'
-  je .down_right
+  je handle_input_down_right
   cmp eax,'L'
-  je .down_right
+  je handle_input_down_right
   cmp eax,'q'
-  je .quit
+  je handle_input_quit
   cmp eax,'Q'
-  je .quit
-  jmp .poll
+  je handle_input_quit
+  jmp handle_input_poll
 
-.up_left:
+handle_input_up_left:
   sub [left_y],1
-  jmp .poll
-.down_left:
+  jmp handle_input_poll
+handle_input_down_left:
   add [left_y],1
-  jmp .poll
-.up_right:
+  jmp handle_input_poll
+handle_input_up_right:
   sub [right_y],1
-  jmp .poll
-.down_right:
+  jmp handle_input_poll
+handle_input_down_right:
   add [right_y],1
-  jmp .poll
-.quit:
+  jmp handle_input_poll
+handle_input_quit:
   mov dword [quit_flag],1
-.done:
+handle_input_done:
   ret
 end if
 endp
@@ -338,6 +369,7 @@ start:
 
 section '.idata' import data readable writeable
   library kernel32, 'KERNEL32.DLL', \
+          user32,   'USER32.DLL', \
           msvcrt,   'MSVCRT.DLL'
 
   import kernel32, \
@@ -346,6 +378,9 @@ section '.idata' import data readable writeable
          SetConsoleMode,'SetConsoleMode', \
          Sleep,         'Sleep', \
          ExitProcess,   'ExitProcess'
+
+  import user32, \
+         GetAsyncKeyState, 'GetAsyncKeyState'
 
   import msvcrt, \
          printf,        'printf', \
