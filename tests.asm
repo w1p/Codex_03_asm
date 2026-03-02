@@ -1,7 +1,7 @@
 format PE console 4.0
 entry test_start
 
-define UNIT_TEST 1
+UNIT_TEST = 1
 include 'pong.asm'
 
 section '.testdata' data readable writeable
