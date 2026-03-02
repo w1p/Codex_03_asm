@@ -11,25 +11,27 @@ section '.testdata' data readable writeable
 
 section '.testcode' code readable executable
 
-proc assert_mem_eq_imm, pMem, expected
-  mov eax,[pMem]
-  mov edx,[expected]
-  cmp dword [eax],edx
+macro ASSERT_MEM_EQ mem, expected
+{
+  local .ok, .done
+  mov eax,[mem]
+  cmp eax,expected
   je .ok
   inc dword [tests_failed]
-  ret
+  jmp .done
 .ok:
   inc dword [tests_passed]
-  ret
-endp
+.done:
+}
+
 
 proc test_clamp_bounds
   mov dword [left_y],-7
   mov dword [right_y],999
   call clamp_paddles
 
-  stdcall assert_mem_eq_imm, left_y, 1
-  stdcall assert_mem_eq_imm, right_y, H-PADDLE_H-1
+  ASSERT_MEM_EQ left_y, 1
+  ASSERT_MEM_EQ right_y, H-PADDLE_H-1
   ret
 endp
 
@@ -39,12 +41,14 @@ proc test_reset_ball
   mov dword [vx],77
   mov dword [vy],-4
 
-  stdcall reset_ball, 0FFFFFFFFh
+  push dword 0FFFFFFFFh
+  call reset_ball
+  add esp,4
 
-  stdcall assert_mem_eq_imm, ball_x, 40
-  stdcall assert_mem_eq_imm, ball_y, 12
-  stdcall assert_mem_eq_imm, vx, 0FFFFFFFFh
-  stdcall assert_mem_eq_imm, vy, 1
+  ASSERT_MEM_EQ ball_x, 40
+  ASSERT_MEM_EQ ball_y, 12
+  ASSERT_MEM_EQ vx, 0FFFFFFFFh
+  ASSERT_MEM_EQ vy, 1
   ret
 endp
 
@@ -58,8 +62,8 @@ proc test_top_bounce
 
   call update_game
 
-  stdcall assert_mem_eq_imm, ball_y, 1
-  stdcall assert_mem_eq_imm, vy, 1
+  ASSERT_MEM_EQ ball_y, 1
+  ASSERT_MEM_EQ vy, 1
   ret
 endp
 
@@ -73,8 +77,8 @@ proc test_left_paddle_hit
 
   call update_game
 
-  stdcall assert_mem_eq_imm, vx, 1
-  stdcall assert_mem_eq_imm, ball_x, 3
+  ASSERT_MEM_EQ vx, 1
+  ASSERT_MEM_EQ ball_x, 3
   ret
 endp
 
@@ -88,10 +92,10 @@ proc test_left_miss_scores
 
   call update_game
 
-  stdcall assert_mem_eq_imm, ball_x, 40
-  stdcall assert_mem_eq_imm, ball_y, 12
-  stdcall assert_mem_eq_imm, vx, 1
-  stdcall assert_mem_eq_imm, vy, 1
+  ASSERT_MEM_EQ ball_x, 40
+  ASSERT_MEM_EQ ball_y, 12
+  ASSERT_MEM_EQ vx, 1
+  ASSERT_MEM_EQ vy, 1
   ret
 endp
 
