@@ -210,7 +210,7 @@ proc update_game
   jmp .check_score
 
 .score_right:
-  stdcall reset_ball, -1
+  stdcall reset_ball, 0FFFFFFFFh
 
 .check_score:
   ret

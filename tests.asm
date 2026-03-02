@@ -39,11 +39,11 @@ proc test_reset_ball
   mov dword [vx],77
   mov dword [vy],-4
 
-  stdcall reset_ball, -1
+  stdcall reset_ball, 0FFFFFFFFh
 
   stdcall assert_mem_eq_imm, ball_x, 40
   stdcall assert_mem_eq_imm, ball_y, 12
-  stdcall assert_mem_eq_imm, vx, -1
+  stdcall assert_mem_eq_imm, vx, 0FFFFFFFFh
   stdcall assert_mem_eq_imm, vy, 1
   ret
 endp
