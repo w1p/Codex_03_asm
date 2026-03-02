@@ -384,7 +384,5 @@ section '.idata' import data readable writeable
 
   import msvcrt, \
          printf,        'printf', \
-         fflush,        'fflush', \
-         _kbhit,        '_kbhit', \
-         _getch,        '_getch'
+         fflush,        'fflush'
 end if
