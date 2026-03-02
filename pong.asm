@@ -80,7 +80,38 @@ proc handle_input
 if UNIT_TEST = 1
   ret
 else
- .poll:
+  ; Immediate held-key movement (no typematic delay).
+  invoke GetAsyncKeyState, 57h ; W
+  test eax,8000h
+  jz .check_left_down
+  sub [left_y],1
+
+.check_left_down:
+  invoke GetAsyncKeyState, 53h ; S
+  test eax,8000h
+  jz .check_right_up
+  add [left_y],1
+
+.check_right_up:
+  invoke GetAsyncKeyState, 4Fh ; O
+  test eax,8000h
+  jz .check_right_down
+  sub [right_y],1
+
+.check_right_down:
+  invoke GetAsyncKeyState, 4Ch ; L
+  test eax,8000h
+  jz .check_quit
+  add [right_y],1
+
+.check_quit:
+  invoke GetAsyncKeyState, 51h ; Q
+  test eax,8000h
+  jz .poll
+  mov dword [quit_flag],1
+
+  ; Compatibility path: process queued keypresses from console too.
+.poll:
   cinvoke _kbhit
   test eax,eax
   jz .done
@@ -338,6 +369,7 @@ start:
 
 section '.idata' import data readable writeable
   library kernel32, 'KERNEL32.DLL', \
+          user32,   'USER32.DLL', \
           msvcrt,   'MSVCRT.DLL'
 
   import kernel32, \
@@ -346,6 +378,9 @@ section '.idata' import data readable writeable
          SetConsoleMode,'SetConsoleMode', \
          Sleep,         'Sleep', \
          ExitProcess,   'ExitProcess'
+
+  import user32, \
+         GetAsyncKeyState, 'GetAsyncKeyState'
 
   import msvcrt, \
          printf,        'printf', \
