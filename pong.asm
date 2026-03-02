@@ -80,79 +80,36 @@ proc handle_input
 if UNIT_TEST = 1
   ret
 else
-  ; Immediate held-key movement (no typematic delay).
+  ; Immediate held-key movement + tap detection between frame polls.
   invoke GetAsyncKeyState, 57h ; W
-  test eax,8000h
+  test eax,8001h
   jz handle_input_check_left_down
   sub [left_y],1
 
 handle_input_check_left_down:
   invoke GetAsyncKeyState, 53h ; S
-  test eax,8000h
+  test eax,8001h
   jz handle_input_check_right_up
   add [left_y],1
 
 handle_input_check_right_up:
   invoke GetAsyncKeyState, 4Fh ; O
-  test eax,8000h
+  test eax,8001h
   jz handle_input_check_right_down
   sub [right_y],1
 
 handle_input_check_right_down:
   invoke GetAsyncKeyState, 4Ch ; L
-  test eax,8000h
+  test eax,8001h
   jz handle_input_check_quit
   add [right_y],1
 
 handle_input_check_quit:
   invoke GetAsyncKeyState, 51h ; Q
-  test eax,8000h
-  jz handle_input_poll
-  mov dword [quit_flag],1
-
-  ; Compatibility path: process queued keypresses from console too.
-handle_input_poll:
-  cinvoke _kbhit
-  test eax,eax
+  test eax,8001h
   jz handle_input_done
-
-  cinvoke _getch
-  cmp eax,'w'
-  je handle_input_up_left
-  cmp eax,'W'
-  je handle_input_up_left
-  cmp eax,'s'
-  je handle_input_down_left
-  cmp eax,'S'
-  je handle_input_down_left
-  cmp eax,'o'
-  je handle_input_up_right
-  cmp eax,'O'
-  je handle_input_up_right
-  cmp eax,'l'
-  je handle_input_down_right
-  cmp eax,'L'
-  je handle_input_down_right
-  cmp eax,'q'
-  je handle_input_quit
-  cmp eax,'Q'
-  je handle_input_quit
-  jmp handle_input_poll
-
-handle_input_up_left:
-  sub [left_y],1
-  jmp handle_input_poll
-handle_input_down_left:
-  add [left_y],1
-  jmp handle_input_poll
-handle_input_up_right:
-  sub [right_y],1
-  jmp handle_input_poll
-handle_input_down_right:
-  add [right_y],1
-  jmp handle_input_poll
-handle_input_quit:
   mov dword [quit_flag],1
+
 handle_input_done:
   ret
 end if
