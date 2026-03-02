@@ -22,12 +22,12 @@ You *can* use MASM/UASM/NASM, but that requires rewriting parts of the source to
 
 1. Download FASM for Windows from: https://flatassembler.net/
 2. Extract it to a stable folder, for example:
-   - `C:\tools\fasm`
+   - `D:\fasm`
 3. Add that folder to your **PATH**:
    - Start Menu -> search **Environment Variables** -> open **Edit the system environment variables**
    - Click **Environment Variables...**
    - Under **User variables** (or **System variables**), select `Path` -> **Edit** -> **New**
-   - Add: `C:\tools\fasm`
+   - Add: `D:\fasm`
    - Click **OK** on all dialogs
 4. Close and reopen PowerShell / CMD.
 5. Verify installation:
@@ -38,12 +38,32 @@ fasm
 
 If PATH is correct, FASM prints its banner/help text.
 
-### Quick no-PATH alternative
+## Important: fix for `include 'win32ax.inc'` not found
 
-If you prefer not to set PATH, run FASM by full path:
+`pong.asm` uses:
+
+```asm
+include 'win32ax.inc'
+```
+
+So FASM must know where its `INCLUDE` folder is (usually `D:\fasm\INCLUDE`).
+
+### Option A (recommended): pass include path in command
 
 ```bat
-C:\tools\fasm\fasm.exe pong.asm pong.exe
+D:\fasm\fasm.exe -i"D:\fasm\INCLUDE\\" pong.asm pong.exe
+```
+
+### Option B: set `INCLUDE` environment variable once
+
+```bat
+setx INCLUDE D:\fasm\INCLUDE
+```
+
+Then open a **new terminal** and build normally:
+
+```bat
+D:\fasm\fasm.exe pong.asm pong.exe
 ```
 
 ## Requirements (Windows 11)
@@ -56,7 +76,7 @@ C:\tools\fasm\fasm.exe pong.asm pong.exe
 From a Command Prompt or PowerShell in this repository:
 
 ```bat
-fasm pong.asm pong.exe
+D:\fasm\fasm.exe -i"D:\fasm\INCLUDE\\" pong.asm pong.exe
 ```
 
 If build succeeds, `pong.exe` is created in the same folder.

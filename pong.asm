@@ -340,19 +340,7 @@ start:
 
   invoke RegisterClass, wc
 
-  invoke CreateWindowEx,
-    0,
-    class_name,
-    window_title,
-    WS_OVERLAPPEDWINDOW,
-    CW_USEDEFAULT,
-    CW_USEDEFAULT,
-    WINDOW_W,
-    WINDOW_H,
-    NULL,
-    NULL,
-    ebx,
-    NULL
+  invoke CreateWindowEx, 0, class_name, window_title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, WINDOW_W, WINDOW_H, NULL, NULL, ebx, NULL
 
   mov [hwnd_main], eax
 
