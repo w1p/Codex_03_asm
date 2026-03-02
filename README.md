@@ -27,7 +27,7 @@ pong.exe
 ## Controls
 
 - `W` / `S` : move left paddle up/down
-- Right paddle is simple AI
+- Right paddle AI tracks incoming balls (and recenters when ball moves away)
 
 ## Notes
 

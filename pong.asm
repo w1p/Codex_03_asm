@@ -94,16 +94,40 @@ endp
 proc update_game
   call handle_input
 
-  ; right paddle simple AI
+  ; right paddle AI: track only when ball is incoming (moving right)
+  mov eax,[vx]
+  cmp eax,0
+  jle .ai_return_center
+
+  ; incoming ball: follow its Y with small deadzone
   mov eax,[ball_y]
   mov edx,[right_y]
   add edx,PADDLE_H/2
-  cmp eax,edx
-  jle .ai_up
-  add [right_y],1
+  mov ecx,edx
+  dec ecx
+  cmp eax,ecx
+  jl .ai_up
+  mov ecx,edx
+  inc ecx
+  cmp eax,ecx
+  jg .ai_down
   jmp .ai_done
+
+.ai_return_center:
+  ; when ball moves away, drift back toward screen center slowly
+  mov eax,H/2
+  mov edx,[right_y]
+  add edx,PADDLE_H/2
+  cmp edx,eax
+  jl .ai_down
+  jg .ai_up
+  jmp .ai_done
+
 .ai_up:
   sub [right_y],1
+  jmp .ai_done
+.ai_down:
+  add [right_y],1
 .ai_done:
 
   call clamp_paddles
