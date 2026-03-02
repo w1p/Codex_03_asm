@@ -23,6 +23,7 @@ section '.data' data readable writeable
   esc_home  db 27,'[H',0
   fmt_str   db '%s',0
   frame_buf rb 4096
+  score_fmt  db 27,'[HLeft [%d] vs [%d] Right   (W/S: left, O/L: right, Q: quit)',13,10,0
 
   left_y    dd 10
   right_y   dd 10
@@ -30,6 +31,9 @@ section '.data' data readable writeable
   ball_y    dd 12
   vx        dd 1
   vy        dd 1
+  left_score  dd 0
+  right_score dd 0
+  quit_flag   dd 0
 
   out_handle dd 0
   old_mode   dd 0
@@ -76,26 +80,48 @@ proc handle_input
 if UNIT_TEST = 1
   ret
 else
+ .poll:
   cinvoke _kbhit
   test eax,eax
   jz .done
 
   cinvoke _getch
   cmp eax,'w'
-  je .up
+  je .up_left
   cmp eax,'W'
-  je .up
+  je .up_left
   cmp eax,'s'
-  je .down
+  je .down_left
   cmp eax,'S'
-  je .down
-  jmp .done
+  je .down_left
+  cmp eax,'o'
+  je .up_right
+  cmp eax,'O'
+  je .up_right
+  cmp eax,'l'
+  je .down_right
+  cmp eax,'L'
+  je .down_right
+  cmp eax,'q'
+  je .quit
+  cmp eax,'Q'
+  je .quit
+  jmp .poll
 
-.up:
+.up_left:
   sub [left_y],1
-  jmp .done
-.down:
+  jmp .poll
+.down_left:
   add [left_y],1
+  jmp .poll
+.up_right:
+  sub [right_y],1
+  jmp .poll
+.down_right:
+  add [right_y],1
+  jmp .poll
+.quit:
+  mov dword [quit_flag],1
 .done:
   ret
 end if
@@ -103,42 +129,6 @@ endp
 
 proc update_game
   call handle_input
-
-  ; right paddle AI: track only when ball is incoming (moving right)
-  mov eax,[vx]
-  cmp eax,0
-  jle .ai_return_center
-
-  ; incoming ball: follow its Y with small deadzone
-  mov eax,[ball_y]
-  mov edx,[right_y]
-  add edx,PADDLE_H/2
-  mov ecx,edx
-  dec ecx
-  cmp eax,ecx
-  jl .ai_up
-  mov ecx,edx
-  inc ecx
-  cmp eax,ecx
-  jg .ai_down
-  jmp .ai_done
-
-.ai_return_center:
-  ; when ball moves away, drift back toward screen center slowly
-  mov eax,H/2
-  mov edx,[right_y]
-  add edx,PADDLE_H/2
-  cmp edx,eax
-  jl .ai_down
-  jg .ai_up
-  jmp .ai_done
-
-.ai_up:
-  sub [right_y],1
-  jmp .ai_done
-.ai_down:
-  add [right_y],1
-.ai_done:
 
   call clamp_paddles
 
@@ -210,10 +200,12 @@ proc update_game
   jmp .check_score
 
 .score_left:
+  add dword [right_score],1
   stdcall reset_ball, 1
   jmp .check_score
 
 .score_right:
+  add dword [left_score],1
   stdcall reset_ball, 0FFFFFFFFh
 
 .check_score:
@@ -223,10 +215,16 @@ endp
 proc build_frame
   mov edi,frame_buf
 
-  ; ESC[H
+  ; ESC[2;1H (reserve top row for score/controls)
   mov byte [edi],27
   inc edi
   mov byte [edi],'['
+  inc edi
+  mov byte [edi],'2'
+  inc edi
+  mov byte [edi],';'
+  inc edi
+  mov byte [edi],'1'
   inc edi
   mov byte [edi],'H'
   inc edi
@@ -326,7 +324,10 @@ start:
 
 .main_loop:
   call update_game
+  cmp dword [quit_flag],0
+  jne .exit
   call build_frame
+  cinvoke printf, score_fmt, [left_score], [right_score]
   cinvoke printf, fmt_str, frame_buf
   cinvoke fflush, 0
   invoke Sleep, 33

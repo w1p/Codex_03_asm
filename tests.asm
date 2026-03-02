@@ -80,6 +80,8 @@ proc test_left_paddle_hit
 endp
 
 proc test_left_miss_scores
+  mov dword [left_score],0
+  mov dword [right_score],0
   mov dword [left_y],10
   mov dword [right_y],10
   mov dword [ball_x],4
@@ -93,6 +95,8 @@ proc test_left_miss_scores
   ASSERT_MEM_EQ ball_y, 12
   ASSERT_MEM_EQ vx, 1
   ASSERT_MEM_EQ vy, 1
+  ASSERT_MEM_EQ right_score, 1
+  ASSERT_MEM_EQ left_score, 0
   ret
 endp
 
@@ -105,7 +109,7 @@ proc test_build_frame_ball_char
 
   call build_frame
 
-  ; ESC[H prefix
+  ; ESC[2;1H prefix
   cmp byte [frame_buf],27
   je .p0_ok
   inc dword [tests_failed]
@@ -120,16 +124,38 @@ proc test_build_frame_ball_char
 .p1_ok:
   inc dword [tests_passed]
 .p2:
-  cmp byte [frame_buf+2],'H'
+  cmp byte [frame_buf+2],'2'
   je .p2_ok
   inc dword [tests_failed]
-  jmp .ball
+  jmp .p3
 .p2_ok:
   inc dword [tests_passed]
 
+.p3:
+  cmp byte [frame_buf+3],';'
+  je .p3_ok
+  inc dword [tests_failed]
+  jmp .p4
+.p3_ok:
+  inc dword [tests_passed]
+.p4:
+  cmp byte [frame_buf+4],'1'
+  je .p4_ok
+  inc dword [tests_failed]
+  jmp .p5
+.p4_ok:
+  inc dword [tests_passed]
+.p5:
+  cmp byte [frame_buf+5],'H'
+  je .p5_ok
+  inc dword [tests_failed]
+  jmp .ball
+.p5_ok:
+  inc dword [tests_passed]
+
 .ball:
-  ; offset = 3 + (y * (W+2)) + x = 3 + (5*82) + 10 = 423
-  cmp byte [frame_buf+423],'O'
+  ; offset = 6 + (y * (W+2)) + x = 6 + (5*82) + 10 = 426
+  cmp byte [frame_buf+426],'O'
   je .ball_ok
   inc dword [tests_failed]
   ret

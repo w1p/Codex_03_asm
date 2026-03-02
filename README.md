@@ -47,7 +47,8 @@ tests.exe
 ## Controls
 
 - `W` / `S` : move left paddle up/down
-- Right paddle AI tracks incoming balls (and recenters when ball moves away)
+- `O` / `L` : move right paddle up/down
+- `Q` : quit
 
 ## Notes
 
