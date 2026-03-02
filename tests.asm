@@ -40,9 +40,7 @@ proc test_reset_ball
   mov dword [vx],77
   mov dword [vy],-4
 
-  push dword 0FFFFFFFFh
-  call reset_ball
-  add esp,4
+  stdcall reset_ball, 0FFFFFFFFh
 
   ASSERT_MEM_EQ ball_x, 40
   ASSERT_MEM_EQ ball_y, 12
