@@ -1,66 +1,54 @@
-format PE GUI 4.0
+format PE console 4.0
 entry start
 
 include 'win32ax.inc'
 
-WINDOW_W      = 800
-WINDOW_H      = 600
-PADDLE_W      = 12
-PADDLE_H      = 96
-PADDLE_MARGIN = 24
-PADDLE_SPEED  = 8
-BALL_SIZE     = 12
+W = 80
+H = 24
+PADDLE_H = 4
+LEFT_X = 2
+RIGHT_X = 77
+
+STD_OUTPUT_HANDLE = -11
+ENABLE_VIRTUAL_TERMINAL_PROCESSING = 4
 
 section '.data' data readable writeable
-  class_name    db 'AsmPongWindow',0
-  window_title  db 'x86 Assembly Pong - Win32/FASM',0
+  esc_clear db 27,'[2J',27,'[H',0
+  esc_home  db 27,'[H',0
+  fmt_str   db '%s',0
+  frame_buf rb 4096
 
-  hwnd_main     dd 0
+  left_y    dd 10
+  right_y   dd 10
+  ball_x    dd 40
+  ball_y    dd 12
+  vx        dd 1
+  vy        dd 1
 
-  screen_w      dd WINDOW_W
-  screen_h      dd WINDOW_H
-
-  left_y        dd 240
-  right_y       dd 240
-
-  ball_x        dd 394
-  ball_y        dd 294
-  ball_vx       dd 5
-  ball_vy       dd 4
-
-  key_up        dd 0
-  key_down      dd 0
-
-  wc            WNDCLASS
-  msg           MSG
-  ps            PAINTSTRUCT
-  client_rc     RECT
+  out_handle dd 0
+  old_mode   dd 0
 
 section '.code' code readable executable
 
 proc clamp_paddles
-  ; Left paddle clamp
   mov eax,[left_y]
-  cmp eax,0
-  jge .left_top_ok
-  mov [left_y],0
-.left_top_ok:
-  mov eax,[screen_h]
-  sub eax,PADDLE_H
+  cmp eax,1
+  jge .l_top_ok
+  mov [left_y],1
+.l_top_ok:
+  mov eax,H-PADDLE_H-1
   mov edx,[left_y]
   cmp edx,eax
-  jle .left_bottom_ok
+  jle .l_done
   mov [left_y],eax
-.left_bottom_ok:
+.l_done:
 
-  ; Right paddle clamp
   mov eax,[right_y]
-  cmp eax,0
-  jge .right_top_ok
-  mov [right_y],0
-.right_top_ok:
-  mov eax,[screen_h]
-  sub eax,PADDLE_H
+  cmp eax,1
+  jge .r_top_ok
+  mov [right_y],1
+.r_top_ok:
+  mov eax,H-PADDLE_H-1
   mov edx,[right_y]
   cmp edx,eax
   jle .done
@@ -70,320 +58,261 @@ proc clamp_paddles
 endp
 
 proc reset_ball, dir
-  mov eax,[screen_w]
-  sub eax,BALL_SIZE
-  shr eax,1
-  mov [ball_x],eax
-
-  mov eax,[screen_h]
-  sub eax,BALL_SIZE
-  shr eax,1
-  mov [ball_y],eax
-
+  mov [ball_x],40
+  mov [ball_y],12
   mov eax,[dir]
-  imul eax,5
-  mov [ball_vx],eax
-  mov [ball_vy],4
+  mov [vx],eax
+  mov [vy],1
   ret
 endp
 
-proc update_game
-  ; Player movement (left paddle)
-  cmp [key_up],0
-  je .skip_up
-  sub [left_y],PADDLE_SPEED
-.skip_up:
-  cmp [key_down],0
-  je .skip_down
-  add [left_y],PADDLE_SPEED
-.skip_down:
+proc handle_input
+  cinvoke _kbhit
+  test eax,eax
+  jz .done
 
-  ; Simple AI (right paddle follows ball)
-  mov eax,[ball_y]
-  add eax,BALL_SIZE/2
-  mov edx,[right_y]
-  add edx,PADDLE_H/2
-  cmp eax,edx
-  jle .ai_up
-  add [right_y],6
-  jmp .ai_done
-.ai_up:
-  sub [right_y],6
-.ai_done:
-
-  call clamp_paddles
-
-  ; Move ball
-  mov eax,[ball_x]
-  add eax,[ball_vx]
-  mov [ball_x],eax
-
-  mov eax,[ball_y]
-  add eax,[ball_vy]
-  mov [ball_y],eax
-
-  ; Top/bottom wall collision
-  mov eax,[ball_y]
-  cmp eax,0
-  jge .check_bottom
-  mov [ball_y],0
-  mov eax,[ball_vy]
-  neg eax
-  mov [ball_vy],eax
-.check_bottom:
-  mov eax,[screen_h]
-  sub eax,BALL_SIZE
-  mov edx,[ball_y]
-  cmp edx,eax
-  jle .check_left_paddle
-  mov [ball_y],eax
-  mov eax,[ball_vy]
-  neg eax
-  mov [ball_vy],eax
-
-.check_left_paddle:
-  ; Collision with left paddle when moving left
-  mov eax,[ball_vx]
-  cmp eax,0
-  jge .check_right_paddle
-
-  mov eax,[ball_x]
-  cmp eax,PADDLE_MARGIN + PADDLE_W
-  jg .check_right_paddle
-
-  mov ecx,[ball_y]
-  add ecx,BALL_SIZE
-  mov edx,[left_y]
-  cmp ecx,edx
-  jle .check_score_left
-
-  mov ecx,[left_y]
-  add ecx,PADDLE_H
-  mov edx,[ball_y]
-  cmp edx,ecx
-  jge .check_score_left
-
-  mov dword [ball_x],PADDLE_MARGIN + PADDLE_W
-  mov eax,[ball_vx]
-  neg eax
-  mov [ball_vx],eax
-
-.check_right_paddle:
-  ; Collision with right paddle when moving right
-  mov eax,[ball_vx]
-  cmp eax,0
-  jle .check_score_left
-
-  mov eax,[screen_w]
-  sub eax,PADDLE_MARGIN + PADDLE_W + BALL_SIZE
-  mov edx,[ball_x]
-  cmp edx,eax
-  jl .check_score_left
-
-  mov ecx,[ball_y]
-  add ecx,BALL_SIZE
-  mov edx,[right_y]
-  cmp ecx,edx
-  jle .check_score_left
-
-  mov ecx,[right_y]
-  add ecx,PADDLE_H
-  mov edx,[ball_y]
-  cmp edx,ecx
-  jge .check_score_left
-
-  mov [ball_x],eax
-  mov eax,[ball_vx]
-  neg eax
-  mov [ball_vx],eax
-
-.check_score_left:
-  ; Ball leaves left side -> reset toward right
-  mov eax,[ball_x]
-  cmp eax,0
-  jge .check_score_right
-  stdcall reset_ball, 1
+  cinvoke _getch
+  cmp eax,'w'
+  je .up
+  cmp eax,'W'
+  je .up
+  cmp eax,'s'
+  je .down
+  cmp eax,'S'
+  je .down
   jmp .done
 
-.check_score_right:
-  ; Ball leaves right side -> reset toward left
-  mov eax,[screen_w]
-  sub eax,BALL_SIZE
-  mov edx,[ball_x]
-  cmp edx,eax
-  jle .done
-  stdcall reset_ball, -1
-
+.up:
+  sub [left_y],1
+  jmp .done
+.down:
+  add [left_y],1
 .done:
   ret
 endp
 
-proc draw_game, hdc
-  ; Clear background
-  invoke PatBlt, [hdc], 0, 0, [screen_w], [screen_h], BLACKNESS
+proc update_game
+  call handle_input
 
-  ; Left paddle
-  invoke PatBlt, [hdc], PADDLE_MARGIN, [left_y], PADDLE_W, PADDLE_H, WHITENESS
+  ; right paddle simple AI
+  mov eax,[ball_y]
+  mov edx,[right_y]
+  add edx,PADDLE_H/2
+  cmp eax,edx
+  jle .ai_up
+  add [right_y],1
+  jmp .ai_done
+.ai_up:
+  sub [right_y],1
+.ai_done:
 
-  ; Right paddle
-  mov eax,[screen_w]
-  sub eax,PADDLE_MARGIN + PADDLE_W
-  invoke PatBlt, [hdc], eax, [right_y], PADDLE_W, PADDLE_H, WHITENESS
+  call clamp_paddles
 
-  ; Ball
-  invoke PatBlt, [hdc], [ball_x], [ball_y], BALL_SIZE, BALL_SIZE, WHITENESS
+  mov eax,[ball_x]
+  add eax,[vx]
+  mov [ball_x],eax
 
+  mov eax,[ball_y]
+  add eax,[vy]
+  mov [ball_y],eax
+
+  ; top/bottom
+  mov eax,[ball_y]
+  cmp eax,1
+  jge .check_bottom
+  mov [ball_y],1
+  mov eax,[vy]
+  neg eax
+  mov [vy],eax
+.check_bottom:
+  mov eax,[ball_y]
+  cmp eax,H-2
+  jle .check_left
+  mov dword [ball_y],H-2
+  mov eax,[vy]
+  neg eax
+  mov [vy],eax
+
+.check_left:
+  mov eax,[vx]
+  cmp eax,0
+  jge .check_right
+  mov eax,[ball_x]
+  cmp eax,LEFT_X+1
+  jne .check_right
+
+  mov ecx,[ball_y]
+  mov edx,[left_y]
+  cmp ecx,edx
+  jl .score_left
+  add edx,PADDLE_H-1
+  cmp ecx,edx
+  jg .score_left
+
+  mov eax,[vx]
+  neg eax
+  mov [vx],eax
+  jmp .check_score
+
+.check_right:
+  mov eax,[vx]
+  cmp eax,0
+  jle .check_score
+  mov eax,[ball_x]
+  cmp eax,RIGHT_X-1
+  jne .check_score
+
+  mov ecx,[ball_y]
+  mov edx,[right_y]
+  cmp ecx,edx
+  jl .score_right
+  add edx,PADDLE_H-1
+  cmp ecx,edx
+  jg .score_right
+
+  mov eax,[vx]
+  neg eax
+  mov [vx],eax
+  jmp .check_score
+
+.score_left:
+  stdcall reset_ball, 1
+  jmp .check_score
+
+.score_right:
+  stdcall reset_ball, -1
+
+.check_score:
   ret
 endp
 
-proc WndProc, hwnd, wmsg, wparam, lparam
-  cmp [wmsg], WM_CREATE
-  je .wmcreate
-  cmp [wmsg], WM_SIZE
-  je .wmsize
-  cmp [wmsg], WM_TIMER
-  je .wmtimer
-  cmp [wmsg], WM_KEYDOWN
-  je .wmkeydown
-  cmp [wmsg], WM_KEYUP
-  je .wmkeyup
-  cmp [wmsg], WM_PAINT
-  je .wmpaint
-  cmp [wmsg], WM_DESTROY
-  je .wmdestroy
+proc build_frame
+  mov edi,frame_buf
 
-.defwnd:
-  invoke DefWindowProc, [hwnd], [wmsg], [wparam], [lparam]
-  ret
+  ; ESC[H
+  mov byte [edi],27
+  inc edi
+  mov byte [edi],'['
+  inc edi
+  mov byte [edi],'H'
+  inc edi
 
-.wmcreate:
-  invoke SetTimer, [hwnd], 1, 16, 0
-  xor eax,eax
-  ret
+  xor ebx,ebx              ; y
+.y_loop:
+  cmp ebx,H
+  jge .end_build
 
-.wmsize:
-  mov eax,[lparam]
-  and eax,0FFFFh
-  mov [screen_w],eax
+  xor ecx,ecx              ; x
+.x_loop:
+  cmp ecx,W
+  jge .line_end
 
-  mov eax,[lparam]
-  shr eax,16
-  and eax,0FFFFh
-  mov [screen_h],eax
+  mov al,' '
 
-  call clamp_paddles
-  xor eax,eax
-  ret
+  ; borders
+  cmp ebx,0
+  je .put_border
+  cmp ebx,H-1
+  je .put_border
+  cmp ecx,0
+  je .put_border
+  cmp ecx,W-1
+  je .put_border
 
-.wmtimer:
-  call update_game
-  invoke InvalidateRect, [hwnd], 0, FALSE
-  xor eax,eax
-  ret
+  ; left paddle
+  cmp ecx,LEFT_X
+  jne .check_right_paddle
+  mov edx,[left_y]
+  cmp ebx,edx
+  jl .check_right_paddle
+  add edx,PADDLE_H-1
+  cmp ebx,edx
+  jg .check_right_paddle
+  mov al,'|'
+  jmp .store
 
-.wmkeydown:
-  cmp [wparam], VK_UP
-  jne .check_down_press
-  mov [key_up],1
-  xor eax,eax
-  ret
-.check_down_press:
-  cmp [wparam], VK_DOWN
-  jne .defwnd
-  mov [key_down],1
-  xor eax,eax
-  ret
+.check_right_paddle:
+  cmp ecx,RIGHT_X
+  jne .check_ball
+  mov edx,[right_y]
+  cmp ebx,edx
+  jl .check_ball
+  add edx,PADDLE_H-1
+  cmp ebx,edx
+  jg .check_ball
+  mov al,'|'
+  jmp .store
 
-.wmkeyup:
-  cmp [wparam], VK_UP
-  jne .check_down_release
-  mov [key_up],0
-  xor eax,eax
-  ret
-.check_down_release:
-  cmp [wparam], VK_DOWN
-  jne .defwnd
-  mov [key_down],0
-  xor eax,eax
-  ret
+.check_ball:
+  mov edx,[ball_x]
+  cmp ecx,edx
+  jne .store
+  mov edx,[ball_y]
+  cmp ebx,edx
+  jne .store
+  mov al,'O'
+  jmp .store
 
-.wmpaint:
-  invoke BeginPaint, [hwnd], ps
-  invoke draw_game, eax
-  invoke EndPaint, [hwnd], ps
-  xor eax,eax
-  ret
+.put_border:
+  mov al,'#'
 
-.wmdestroy:
-  invoke KillTimer, [hwnd], 1
-  invoke PostQuitMessage, 0
-  xor eax,eax
+.store:
+  mov [edi],al
+  inc edi
+  inc ecx
+  jmp .x_loop
+
+.line_end:
+  mov byte [edi],13
+  inc edi
+  mov byte [edi],10
+  inc edi
+  inc ebx
+  jmp .y_loop
+
+.end_build:
+  mov byte [edi],0
   ret
 endp
 
 start:
-  invoke GetModuleHandle, 0
-  mov ebx,eax
+  invoke GetStdHandle, STD_OUTPUT_HANDLE
+  mov [out_handle],eax
 
-  mov [wc.style], CS_HREDRAW + CS_VREDRAW
-  mov [wc.lpfnWndProc], WndProc
-  mov [wc.cbClsExtra], 0
-  mov [wc.cbWndExtra], 0
-  mov [wc.hInstance], ebx
-  invoke LoadIcon, 0, IDI_APPLICATION
-  mov [wc.hIcon], eax
-  invoke LoadCursor, 0, IDC_ARROW
-  mov [wc.hCursor], eax
-  mov [wc.hbrBackground], COLOR_WINDOW + 1
-  mov [wc.lpszMenuName], 0
-  mov [wc.lpszClassName], class_name
+  invoke GetConsoleMode, eax, old_mode
+  test eax,eax
+  jz .skip_vt
+  mov eax,[old_mode]
+  or eax,ENABLE_VIRTUAL_TERMINAL_PROCESSING
+  invoke SetConsoleMode, [out_handle], eax
+.skip_vt:
 
-  invoke RegisterClass, wc
+  cinvoke printf, esc_clear
 
-  invoke CreateWindowEx, 0, class_name, window_title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, WINDOW_W, WINDOW_H, NULL, NULL, ebx, NULL
-
-  mov [hwnd_main], eax
-
-  invoke ShowWindow, eax, SW_SHOWNORMAL
-  invoke UpdateWindow, eax
-
-.msg_loop:
-  invoke GetMessage, msg, NULL, 0, 0
-  cmp eax,0
-  jle .exit
-  invoke TranslateMessage, msg
-  invoke DispatchMessage, msg
-  jmp .msg_loop
+.main_loop:
+  call update_game
+  call build_frame
+  cinvoke printf, fmt_str, frame_buf
+  cinvoke fflush, 0
+  invoke Sleep, 33
+  jmp .main_loop
 
 .exit:
-  invoke ExitProcess, [msg.wParam]
+  invoke ExitProcess, 0
 
 section '.idata' import data readable writeable
   library kernel32, 'KERNEL32.DLL', \
-          user32,   'USER32.DLL',   \
-          gdi32,    'GDI32.DLL'
+          msvcrt,   'MSVCRT.DLL'
 
   import kernel32, \
-         GetModuleHandle, 'GetModuleHandleA', \
-         ExitProcess,     'ExitProcess'
+         GetStdHandle,  'GetStdHandle', \
+         GetConsoleMode,'GetConsoleMode', \
+         SetConsoleMode,'SetConsoleMode', \
+         Sleep,         'Sleep', \
+         ExitProcess,   'ExitProcess'
 
-  import user32, \
-         RegisterClass,   'RegisterClassA', \
-         CreateWindowEx,  'CreateWindowExA', \
-         DefWindowProc,   'DefWindowProcA', \
-         ShowWindow,      'ShowWindow', \
-         UpdateWindow,    'UpdateWindow', \
-         GetMessage,      'GetMessageA', \
-         TranslateMessage,'TranslateMessage', \
-         DispatchMessage, 'DispatchMessageA', \
-         PostQuitMessage, 'PostQuitMessage', \
-         LoadCursor,      'LoadCursorA', \
-         LoadIcon,        'LoadIconA', \
-         BeginPaint,      'BeginPaint', \
-         EndPaint,        'EndPaint', \
-         InvalidateRect,  'InvalidateRect', \
-         SetTimer,        'SetTimer', \
-         KillTimer,       'KillTimer'
-
-  import gdi32, \
-         PatBlt,          'PatBlt'
+  import msvcrt, \
+         printf,        'printf', \
+         fflush,        'fflush', \
+         _kbhit,        '_kbhit', \
+         _getch,        '_getch'
