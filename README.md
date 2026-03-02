@@ -52,6 +52,6 @@ tests.exe
 
 ## Notes
 
-- Renders in terminal using ANSI escape sequences.
+- Renders in terminal using ANSI escape sequences with a reserved HUD row while keeping output within a 24-line terminal viewport.
 - Uses `MSVCRT` (`printf`, `_kbhit`, `_getch`) for text output + keyboard polling.
 - Uses `kernel32` (`Sleep`) for frame pacing.
