@@ -18,6 +18,34 @@ Why:
 
 You *can* use MASM/UASM/NASM, but that requires rewriting parts of the source to match their syntax and macro systems.
 
+## FASM setup on Windows 11
+
+1. Download FASM for Windows from: https://flatassembler.net/
+2. Extract it to a stable folder, for example:
+   - `C:\tools\fasm`
+3. Add that folder to your **PATH**:
+   - Start Menu -> search **Environment Variables** -> open **Edit the system environment variables**
+   - Click **Environment Variables...**
+   - Under **User variables** (or **System variables**), select `Path` -> **Edit** -> **New**
+   - Add: `C:\tools\fasm`
+   - Click **OK** on all dialogs
+4. Close and reopen PowerShell / CMD.
+5. Verify installation:
+
+```bat
+fasm
+```
+
+If PATH is correct, FASM prints its banner/help text.
+
+### Quick no-PATH alternative
+
+If you prefer not to set PATH, run FASM by full path:
+
+```bat
+C:\tools\fasm\fasm.exe pong.asm pong.exe
+```
+
 ## Requirements (Windows 11)
 
 - [FASM](https://flatassembler.net/) (Flat Assembler)
