@@ -141,17 +141,29 @@ else
 
 .up_left:
   sub [left_y],1
-  jmp .poll
-.down_left:
+
+.check_left_down:
+  invoke GetAsyncKeyState, 'S'
+  test ax,8000h
+  jz .check_right_up
   add [left_y],1
-  jmp .poll
-.up_right:
+
+.check_right_up:
+  invoke GetAsyncKeyState, 'O'
+  test ax,8000h
+  jz .check_right_down
   sub [right_y],1
-  jmp .poll
-.down_right:
+
+.check_right_down:
+  invoke GetAsyncKeyState, 'L'
+  test ax,8000h
+  jz .check_quit
   add [right_y],1
-  jmp .poll
-.quit:
+
+.check_quit:
+  invoke GetAsyncKeyState, 'Q'
+  test ax,8000h
+  jz .done
   mov dword [quit_flag],1
 .done:
   ret
@@ -384,7 +396,5 @@ section '.idata' import data readable writeable
 
   import msvcrt, \
          printf,        'printf', \
-         fflush,        'fflush', \
-         _kbhit,        '_kbhit', \
-         _getch,        '_getch'
+         fflush,        'fflush'
 end if
