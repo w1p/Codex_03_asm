@@ -1,4 +1,8 @@
 if ~defined UNIT_TEST
+  UNIT_TEST equ 0
+end if
+
+if UNIT_TEST = 0
 format PE console 4.0
 entry start
 end if
@@ -69,7 +73,7 @@ proc reset_ball, dir
 endp
 
 proc handle_input
-if defined UNIT_TEST
+if UNIT_TEST = 1
   ret
 else
   cinvoke _kbhit
@@ -309,7 +313,7 @@ proc build_frame
   ret
 endp
 
-if ~defined UNIT_TEST
+if UNIT_TEST = 0
 start:
   invoke GetStdHandle, STD_OUTPUT_HANDLE
   mov [out_handle],eax
