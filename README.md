@@ -6,6 +6,7 @@ It is written in **32-bit x86 assembly** using **FASM** and runs in a Windows te
 ## Files
 
 - `pong.asm` - console Pong source (FASM syntax).
+- `tests.asm` - unit test harness for core game procedures.
 
 ## Requirements
 
@@ -23,6 +24,25 @@ D:\fasm\fasm.exe -i"D:\fasm\INCLUDE\\" pong.asm pong.exe
 ```bat
 pong.exe
 ```
+
+## Unit tests
+
+The tests are implemented as a separate executable that includes `pong.asm` in `UNIT_TEST` mode.
+In test mode, keyboard polling is bypassed so tests are deterministic.
+
+Build tests:
+
+```bat
+D:\fasm\fasm.exe -i"D:\fasm\INCLUDE\\" tests.asm tests.exe
+```
+
+Run tests:
+
+```bat
+tests.exe
+```
+
+`tests.exe` returns exit code `0` when all tests pass, and `1` when any test fails.
 
 ## Controls
 
