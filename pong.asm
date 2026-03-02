@@ -80,49 +80,37 @@ proc handle_input
 if UNIT_TEST = 1
   ret
 else
- .poll:
-  cinvoke _kbhit
-  test eax,eax
-  jz .done
-
-  cinvoke _getch
-  cmp eax,'w'
-  je .up_left
-  cmp eax,'W'
-  je .up_left
-  cmp eax,'s'
-  je .down_left
-  cmp eax,'S'
-  je .down_left
-  cmp eax,'o'
-  je .up_right
-  cmp eax,'O'
-  je .up_right
-  cmp eax,'l'
-  je .down_right
-  cmp eax,'L'
-  je .down_right
-  cmp eax,'q'
-  je .quit
-  cmp eax,'Q'
-  je .quit
-  jmp .poll
-
-.up_left:
+  ; Immediate held-key movement (no typematic delay).
+  invoke GetAsyncKeyState, 57h ; W
+  test eax,8000h
+  jz handle_input_check_left_down
   sub [left_y],1
-  jmp .poll
-.down_left:
+
+handle_input_check_left_down:
+  invoke GetAsyncKeyState, 53h ; S
+  test eax,8000h
+  jz handle_input_check_right_up
   add [left_y],1
-  jmp .poll
-.up_right:
+
+handle_input_check_right_up:
+  invoke GetAsyncKeyState, 4Fh ; O
+  test eax,8000h
+  jz handle_input_check_right_down
   sub [right_y],1
-  jmp .poll
-.down_right:
+
+handle_input_check_right_down:
+  invoke GetAsyncKeyState, 4Ch ; L
+  test eax,8000h
+  jz handle_input_check_quit
   add [right_y],1
-  jmp .poll
-.quit:
+
+handle_input_check_quit:
+  invoke GetAsyncKeyState, 51h ; Q
+  test eax,8000h
+  jz handle_input_done
   mov dword [quit_flag],1
-.done:
+
+handle_input_done:
   ret
 end if
 endp
@@ -338,6 +326,7 @@ start:
 
 section '.idata' import data readable writeable
   library kernel32, 'KERNEL32.DLL', \
+          user32,   'USER32.DLL', \
           msvcrt,   'MSVCRT.DLL'
 
   import kernel32, \
@@ -347,9 +336,10 @@ section '.idata' import data readable writeable
          Sleep,         'Sleep', \
          ExitProcess,   'ExitProcess'
 
+  import user32, \
+         GetAsyncKeyState, 'GetAsyncKeyState'
+
   import msvcrt, \
          printf,        'printf', \
-         fflush,        'fflush', \
-         _kbhit,        '_kbhit', \
-         _getch,        '_getch'
+         fflush,        'fflush'
 end if
