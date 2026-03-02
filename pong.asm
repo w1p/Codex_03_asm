@@ -80,9 +80,66 @@ proc handle_input
 if UNIT_TEST = 1
   ret
 else
-  invoke GetAsyncKeyState, 'W'
-  test ax,8000h
+  ; Immediate held-key movement (no typematic delay).
+  invoke GetAsyncKeyState, 57h ; W
+  test eax,8000h
   jz .check_left_down
+  sub [left_y],1
+
+.check_left_down:
+  invoke GetAsyncKeyState, 53h ; S
+  test eax,8000h
+  jz .check_right_up
+  add [left_y],1
+
+.check_right_up:
+  invoke GetAsyncKeyState, 4Fh ; O
+  test eax,8000h
+  jz .check_right_down
+  sub [right_y],1
+
+.check_right_down:
+  invoke GetAsyncKeyState, 4Ch ; L
+  test eax,8000h
+  jz .check_quit
+  add [right_y],1
+
+.check_quit:
+  invoke GetAsyncKeyState, 51h ; Q
+  test eax,8000h
+  jz .poll
+  mov dword [quit_flag],1
+
+  ; Compatibility path: process queued keypresses from console too.
+.poll:
+  cinvoke _kbhit
+  test eax,eax
+  jz .done
+
+  cinvoke _getch
+  cmp eax,'w'
+  je .up_left
+  cmp eax,'W'
+  je .up_left
+  cmp eax,'s'
+  je .down_left
+  cmp eax,'S'
+  je .down_left
+  cmp eax,'o'
+  je .up_right
+  cmp eax,'O'
+  je .up_right
+  cmp eax,'l'
+  je .down_right
+  cmp eax,'L'
+  je .down_right
+  cmp eax,'q'
+  je .quit
+  cmp eax,'Q'
+  je .quit
+  jmp .poll
+
+.up_left:
   sub [left_y],1
 
 .check_left_down:
