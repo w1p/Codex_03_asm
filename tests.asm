@@ -4,11 +4,11 @@ entry test_start
 UNIT_TEST = 1
 include 'pong.asm'
 
-section '.testdata' data readable writeable
+section '.tdata' data readable writeable
   tests_passed dd 0
   tests_failed dd 0
 
-section '.testcode' code readable executable
+section '.tcode' code readable executable
 
 macro ASSERT_MEM_EQ mem, expected
 {
@@ -56,6 +56,7 @@ proc test_top_bounce
   mov dword [ball_y],1
   mov dword [vx],0
   mov dword [vy],-1
+  mov dword [ball_accum_ms],67
 
   call update_game
 
@@ -72,6 +73,7 @@ proc test_left_paddle_hit
   mov dword [ball_y],11
   mov dword [vx],-1
   mov dword [vy],0
+  mov dword [ball_accum_ms],67
 
   call update_game
 
@@ -89,6 +91,7 @@ proc test_left_miss_scores
   mov dword [ball_y],1
   mov dword [vx],-1
   mov dword [vy],0
+  mov dword [ball_accum_ms],67
 
   call update_game
 
@@ -185,3 +188,5 @@ section '.idata' import data readable writeable
 
   import kernel32, \
          ExitProcess,   'ExitProcess'
+
+

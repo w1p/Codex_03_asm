@@ -1,5 +1,5 @@
 if ~defined UNIT_TEST
-  UNIT_TEST equ 0
+  UNIT_TEST = 0
 end if
 
 if UNIT_TEST = 0
