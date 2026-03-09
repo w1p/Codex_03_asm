@@ -46,6 +46,30 @@ tests.exe
 
 `tests.exe` returns exit code `0` when all tests pass, and `1` when any test fails.
 
+You can also use the helper scripts in this repo:
+
+Batch:
+
+```bat
+run-tests.bat
+echo %ERRORLEVEL%
+```
+
+PowerShell:
+
+```powershell
+.\run-tests.ps1
+$LASTEXITCODE
+```
+
+Both scripts:
+
+- run `tests.exe`
+- print a short success or failure message
+- exit with the same code as `tests.exe`
+
+That means they work well in CI or other scripts that need to fail automatically when a test fails.
+
 ## Controls
 
 - `W` / `S` : move left paddle up/down
@@ -57,4 +81,3 @@ tests.exe
 - Renders in terminal using ANSI escape sequences with a reserved HUD row while keeping output within a 24-line terminal viewport.
 - Uses `MSVCRT` (`printf`, `_kbhit`, `_getch`) for text output + keyboard polling.
 - Uses `kernel32` (`Sleep`) for frame pacing.
-
