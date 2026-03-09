@@ -15,8 +15,10 @@ It is written in **32-bit x86 assembly** using **FASM** and runs in a Windows te
 
 ## Build
 
-```bat
-D:\fasm\fasm.exe -i"D:\fasm\INCLUDE\\" pong.asm pong.exe
+The commands below were verified from PowerShell. Using the old -i... form may print FASM usage instead of building, depending on how PowerShell passes the arguments.
+
+```powershell
+& 'D:\fasm\fasm.exe' 'pong.asm' 'pong.exe'
 ```
 
 ## Run
@@ -32,8 +34,8 @@ In test mode, keyboard polling is bypassed so tests are deterministic.
 
 Build tests:
 
-```bat
-D:\fasm\fasm.exe -i"D:\fasm\INCLUDE\\" tests.asm tests.exe
+```powershell
+& 'D:\fasm\fasm.exe' 'tests.asm' 'tests.exe'
 ```
 
 Run tests:
@@ -55,3 +57,4 @@ tests.exe
 - Renders in terminal using ANSI escape sequences with a reserved HUD row while keeping output within a 24-line terminal viewport.
 - Uses `MSVCRT` (`printf`, `_kbhit`, `_getch`) for text output + keyboard polling.
 - Uses `kernel32` (`Sleep`) for frame pacing.
+
