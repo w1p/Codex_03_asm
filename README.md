@@ -1,83 +1,98 @@
 # x86 Assembly Pong (ANSI Console)
 
-This repo now uses a **pure ANSI text console** version of Pong (no Win32 GUI/GDI drawing).
-It is written in **32-bit x86 assembly** using **FASM** and runs in a Windows terminal.
+This repo uses a pure ANSI text-console version of Pong written in 32-bit x86 assembly with FASM.
 
-## Files
+## Folder layout
 
-- `pong.asm` - console Pong source (FASM syntax).
-- `tests.asm` - unit test harness for core game procedures.
+- `src/` contains game source files.
+- `tests/` contains module-specific test executables and shared test helpers.
+- `scripts/` contains build and test entry points.
+
+Current files:
+
+- `src/pong.asm` - shared Pong game logic and state.
+- `src/pong_game.asm` - executable game wrapper and imports.
+- `tests/test_pong.asm` - tests for `src/pong.asm`.
+- `tests/test_common.inc` - shared test helper include for assertions and test utilities.
+- `scripts/build-game.ps1` - builds the game executable.
+- `scripts/build-tests.ps1` - builds all test executables.
+- `scripts/run-tests.ps1` - runs all test executables and returns a CI-friendly exit code.
 
 ## Requirements
 
 - Windows 11 (Intel/AMD)
 - FASM for Windows (`fasm.exe`)
 
-## Build
-
-The commands below were verified from PowerShell. Using the old -i... form may print FASM usage instead of building, depending on how PowerShell passes the arguments.
+## Build the game
 
 ```powershell
-& 'D:\fasm\fasm.exe' 'pong.asm' 'pong.exe'
+.\scripts\build-game.ps1
 ```
 
-## Run
+This builds `pong.exe` from `src/pong_game.asm`, which includes `src/pong.asm`.
+
+## Run the game
 
 ```bat
 pong.exe
 ```
 
-## Unit tests
-
-The tests are implemented as a separate executable that includes `pong.asm` in `UNIT_TEST` mode.
-In test mode, keyboard polling is bypassed so tests are deterministic.
-
-Build tests:
+## Build tests
 
 ```powershell
-& 'D:\fasm\fasm.exe' 'tests.asm' 'tests.exe'
+.\scripts\build-tests.ps1
 ```
 
-Run tests:
+This currently builds:
 
-```bat
-tests.exe
+- `tests/test_pong.exe`
+
+## Run tests
+
+```powershell
+.\scripts\run-tests.ps1
 ```
 
-`tests.exe` returns exit code `0` when all tests pass, and `1` when any test fails.
-
-You can also use the helper scripts in this repo:
-
-Batch:
-
-```bat
-run-tests.bat
-echo %ERRORLEVEL%
-```
-
-PowerShell:
+Or use the root compatibility wrappers:
 
 ```powershell
 .\run-tests.ps1
-$LASTEXITCODE
 ```
 
-Both scripts:
+```bat
+run-tests.bat
+```
 
-- run `tests.exe`
-- print a short success or failure message
-- exit with the same code as `tests.exe`
+The test runner prints one section per test suite, for example `pong`, and each failing assertion includes the suite and behavior name, such as:
 
-That means they work well in CI or other scripts that need to fail automatically when a test fails.
+```text
+FAIL: pong:test_left_miss_scores right score increments (actual=0 expected=1)
+```
 
-## Controls
+That makes it clear which source area the failing test belongs to.
 
-- `W` / `S` : move left paddle up/down
-- `O` / `L` : move right paddle up/down
-- `Q` : quit
+## Adding more assembly modules
 
-## Notes
+When the project grows, follow the same pattern:
 
-- Renders in terminal using ANSI escape sequences with a reserved HUD row while keeping output within a 24-line terminal viewport.
-- Uses `MSVCRT` (`printf`, `_kbhit`, `_getch`) for text output + keyboard polling.
-- Uses `kernel32` (`Sleep`) for frame pacing.
+- put shared production logic in `src/<module>.asm`
+- add an executable wrapper in `src/<module>_game.asm` when needed
+- add tests in `tests/test_<module>.asm`
+- keep shared assertions in `tests/test_common.inc`
+- register the new test executable in `scripts/build-tests.ps1` and `scripts/run-tests.ps1`
+
+Example future layout:
+
+```text
+src/
+  pong.asm
+  pong_game.asm
+  physics.asm
+  render.asm
+
+tests/
+  test_common.inc
+  test_pong.asm
+  test_physics.asm
+  test_render.asm
+```
