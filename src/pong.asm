@@ -8,7 +8,11 @@ RIGHT_X = 77
 BALL_STEP_MS = 100
 FRAME_MS = 33
 
+STD_INPUT_HANDLE = -10
 STD_OUTPUT_HANDLE = -11
+ENABLE_PROCESSED_INPUT = 1
+ENABLE_LINE_INPUT = 2
+ENABLE_ECHO_INPUT = 4
 ENABLE_VIRTUAL_TERMINAL_PROCESSING = 4
 
 section '.data' data readable writeable
@@ -29,8 +33,10 @@ section '.data' data readable writeable
   right_score dd 0
   quit_flag   dd 0
 
-  out_handle dd 0
-  old_mode   dd 0
+  in_handle      dd 0
+  out_handle     dd 0
+  old_in_mode    dd 0
+  old_out_mode   dd 0
 
 section '.code' code readable executable
 
@@ -297,3 +303,4 @@ proc build_frame
   mov byte [edi],0
   ret
 endp
+
