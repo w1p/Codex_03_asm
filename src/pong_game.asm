@@ -6,13 +6,23 @@ include 'pong.asm'
 
 section '.code' code readable executable
 start:
+  invoke GetStdHandle, STD_INPUT_HANDLE
+  mov [in_handle],eax
+  invoke GetConsoleMode, eax, old_in_mode
+  test eax,eax
+  jz .skip_input_mode
+  mov eax,[old_in_mode]
+  and eax,not (ENABLE_LINE_INPUT or ENABLE_ECHO_INPUT or ENABLE_PROCESSED_INPUT)
+  invoke SetConsoleMode, [in_handle], eax
+.skip_input_mode:
+
   invoke GetStdHandle, STD_OUTPUT_HANDLE
   mov [out_handle],eax
 
-  invoke GetConsoleMode, eax, old_mode
+  invoke GetConsoleMode, eax, old_out_mode
   test eax,eax
   jz .skip_vt
-  mov eax,[old_mode]
+  mov eax,[old_out_mode]
   or eax,ENABLE_VIRTUAL_TERMINAL_PROCESSING
   invoke SetConsoleMode, [out_handle], eax
 .skip_vt:
@@ -31,6 +41,21 @@ start:
   jmp .main_loop
 
 .exit:
+  cmp dword [in_handle],0
+  je .skip_restore_input
+  cmp dword [old_in_mode],0
+  je .skip_restore_input
+  invoke SetConsoleMode, [in_handle], [old_in_mode]
+  invoke FlushConsoleInputBuffer, [in_handle]
+.skip_restore_input:
+
+  cmp dword [out_handle],0
+  je .skip_restore_output
+  cmp dword [old_out_mode],0
+  je .skip_restore_output
+  invoke SetConsoleMode, [out_handle], [old_out_mode]
+.skip_restore_output:
+
   invoke ExitProcess, 0
 
 section '.idata' import data readable writeable
@@ -42,6 +67,7 @@ section '.idata' import data readable writeable
          GetStdHandle,  'GetStdHandle', \
          GetConsoleMode,'GetConsoleMode', \
          SetConsoleMode,'SetConsoleMode', \
+         FlushConsoleInputBuffer,'FlushConsoleInputBuffer', \
          Sleep,         'Sleep', \
          ExitProcess,   'ExitProcess'
 
